@@ -154,6 +154,28 @@ weekdays). When you complete a recurring item, OpenLoop automatically
 recurring Outcome, it recreates the child Next Steps as a fresh checklist. The
 rule is stored as a compact RRULE in `items.recurrence_rule`.
 
+## Push notifications
+
+Get a Web Push when an item is **due** or its **resurface date** arrives. The
+scan is scheduled from inside Supabase (`pg_cron`), which calls the app's notify
+endpoint; each item fires at most once thanks to `*_notified_at` stamps.
+
+1. Generate a VAPID key pair once and put them in your env:
+
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+   → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and a `VAPID_SUBJECT`
+   (a `mailto:` you own). Set a random `CRON_SECRET` too.
+2. Deploy, then open **Settings → Enable notifications** on each device (the
+   installed PWA on your phone counts as a device).
+3. Schedule the scan: open `supabase/cron_notify.sql`, replace `<APP_URL>` and
+   `<CRON_SECRET>`, and run it in the Supabase SQL editor. It runs every 15 min.
+
+> iOS note: Web Push only works for **installed** PWAs (Add to Home Screen) on
+> iOS 16.4+. Android/desktop Chrome work in the browser too.
+
 ## Telegram capture (optional)
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) → get the token →
@@ -198,7 +220,9 @@ construction.
 - **Phase 2 (done):** recurrence engine (recurring Next Steps & Outcomes that
   spawn their next occurrence on completion) + structured schedule picker, and
   the MCP server.
-- **Phase 3 (in progress):** in-app template authoring (create/edit Outcome &
-  Thought templates and their steps — no SQL needed) and a month **calendar
-  view** of due/scheduled items — both done. Still to come: push notifications
-  for due / resurfaced items and richer full-text search ranking.
+- **Phase 3 (done):** in-app template authoring (create/edit Outcome & Thought
+  templates and their steps — no SQL needed), a month **calendar view** of
+  due/scheduled items, and **push notifications** for due / resurfaced items
+  scheduled via Supabase `pg_cron`.
+- **Later ideas:** richer full-text search ranking (pg_vector embeddings), bulk
+  intake processing, and a desktop quick-capture hotkey.

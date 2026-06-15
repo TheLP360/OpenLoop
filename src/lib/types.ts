@@ -32,6 +32,8 @@ export interface Item {
   scheduled_date: string | null;
   resurface_date: string | null;
   completed_at: string | null;
+  due_notified_at: string | null;
+  resurface_notified_at: string | null;
   parent_id: string | null;
   url: string | null;
   recurrence_rule: string | null;

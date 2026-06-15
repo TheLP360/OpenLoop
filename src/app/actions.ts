@@ -329,6 +329,40 @@ export async function createOutcomeFromTemplate(templateId: string) {
   redirect(`/item/${outcome.id}?from=outcomes`);
 }
 
+// ── Push subscriptions ──────────────────────────────────────────────────────
+
+export async function savePushSubscription(sub: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string;
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .upsert(
+      {
+        owner_id: user.id,
+        endpoint: sub.endpoint,
+        p256dh: sub.p256dh,
+        auth: sub.auth,
+        user_agent: sub.userAgent ?? null,
+      },
+      { onConflict: "endpoint" }
+    );
+  if (error) throw error;
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  if (error) throw error;
+}
+
 // ── Template authoring ────────────────────────────────────────────────────────
 
 export async function createTemplate(kind: "outcome" | "thought") {

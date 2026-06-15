@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/SignOutButton";
+import { NotificationToggle } from "@/components/NotificationToggle";
 import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,16 @@ export default async function SettingsPage() {
             {user?.id}
           </code>
         </div>
+      </div>
+
+      <div className="card space-y-3 p-4">
+        <div>
+          <p className="font-medium">Notifications</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Get a push when an item is due or resurfaces. Enable per device.
+          </p>
+        </div>
+        <NotificationToggle />
       </div>
 
       <div className="card space-y-2 p-4 text-sm text-slate-500 dark:text-slate-400">

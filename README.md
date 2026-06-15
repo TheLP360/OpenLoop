@@ -198,5 +198,7 @@ construction.
 - **Phase 2 (done):** recurrence engine (recurring Next Steps & Outcomes that
   spawn their next occurrence on completion) + structured schedule picker, and
   the MCP server.
-- **Phase 3 (next):** push notifications for due / resurfaced items, a calendar
-  view, richer full-text search ranking, and template authoring in-app.
+- **Phase 3 (in progress):** in-app template authoring (create/edit Outcome &
+  Thought templates and their steps — no SQL needed) and a month **calendar
+  view** of due/scheduled items — both done. Still to come: push notifications
+  for due / resurfaced items and richer full-text search ranking.

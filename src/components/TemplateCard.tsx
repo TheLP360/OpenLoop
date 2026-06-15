@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import type { Template, TemplateStep } from "@/lib/types";
 import { createOutcomeFromTemplate, createThoughtFromTemplate } from "@/app/actions";
@@ -28,6 +29,13 @@ export function TemplateCard({ template }: { template: Template & { steps: Templ
             <p className="text-sm text-slate-500 dark:text-slate-400">{template.description}</p>
           )}
         </div>
+        <Link
+          href={`/templates/${template.id}`}
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Edit template"
+        >
+          <Icon name="Pencil" className="h-4 w-4" />
+        </Link>
       </div>
 
       {isOutcome && template.steps.length > 0 && (

@@ -329,6 +329,96 @@ export async function createOutcomeFromTemplate(templateId: string) {
   redirect(`/item/${outcome.id}?from=outcomes`);
 }
 
+// ── Template authoring ────────────────────────────────────────────────────────
+
+export async function createTemplate(kind: "outcome" | "thought") {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("templates")
+    .insert({
+      owner_id: user.id,
+      kind,
+      name: kind === "outcome" ? "New outcome template" : "New thought template",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  revalidatePath("/templates");
+  redirect(`/templates/${data.id}`);
+}
+
+export async function updateTemplate(id: string, formData: FormData) {
+  const supabase = createClient();
+  const tagsRaw = str(formData.get("default_tags"));
+  const { error } = await supabase
+    .from("templates")
+    .update({
+      name: str(formData.get("name")) ?? "Untitled",
+      description: str(formData.get("description")),
+      prompt: str(formData.get("prompt")),
+      default_tags: tagsRaw ? parseTags(tagsRaw) : [],
+    })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/templates");
+  revalidatePath(`/templates/${id}`);
+}
+
+export async function deleteTemplate(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("templates").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath("/templates");
+  redirect("/templates");
+}
+
+export async function addTemplateStep(templateId: string, title: string) {
+  const supabase = createClient();
+  if (!title.trim()) return;
+  // Append to the end.
+  const { data: last } = await supabase
+    .from("template_steps")
+    .select("sort_order")
+    .eq("template_id", templateId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("template_steps").insert({
+    template_id: templateId,
+    title: title.trim(),
+    sort_order: (last?.sort_order ?? 0) + 1,
+  });
+  if (error) throw error;
+  revalidatePath(`/templates/${templateId}`);
+}
+
+export async function updateTemplateStep(id: string, templateId: string, formData: FormData) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("template_steps")
+    .update({
+      title: str(formData.get("title")) ?? "Untitled",
+      description: str(formData.get("description")),
+      energy: (str(formData.get("energy")) as EnergyLevel | null) ?? null,
+      priority: (str(formData.get("priority")) as PriorityLevel) ?? "none",
+    })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath(`/templates/${templateId}`);
+}
+
+export async function deleteTemplateStep(id: string, templateId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("template_steps").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath(`/templates/${templateId}`);
+}
+
 // Start a Thought from a writing-prompt template (or blank).
 export async function createThoughtFromTemplate(templateId: string | null) {
   const supabase = createClient();

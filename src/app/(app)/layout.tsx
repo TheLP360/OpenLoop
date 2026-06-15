@@ -16,6 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="text-lg font-semibold tracking-tight">OpenLoop</span>
         </Link>
         <div className="flex items-center gap-1">
+          <Link href="/calendar" className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Calendar">
+            <Icon name="Calendar" className="h-5 w-5" />
+          </Link>
           <Link href="/search" className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Search">
             <Icon name="Search" className="h-5 w-5" />
           </Link>

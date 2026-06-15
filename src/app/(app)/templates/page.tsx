@@ -2,7 +2,7 @@ import { listTemplates } from "@/lib/queries";
 import { TemplateCard } from "@/components/TemplateCard";
 import { EmptyState } from "@/components/ItemCard";
 import { Icon } from "@/components/Icon";
-import { createThoughtFromTemplate } from "@/app/actions";
+import { createTemplate, createThoughtFromTemplate } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +11,29 @@ export default async function TemplatesPage() {
   const outcomes = templates.filter((t) => t.kind === "outcome");
   const thoughts = templates.filter((t) => t.kind === "thought");
   const blankThought = createThoughtFromTemplate.bind(null, null);
+  const newOutcomeTpl = createTemplate.bind(null, "outcome");
+  const newThoughtTpl = createTemplate.bind(null, "thought");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Icon name="LayoutTemplate" className="h-6 w-6 text-loop-600" />
         <h1 className="text-2xl font-bold tracking-tight">Templates</h1>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <form action={newOutcomeTpl}>
+          <button className="btn-ghost w-full border border-dashed border-slate-300 dark:border-slate-700">
+            <Icon name="Target" className="h-4 w-4" />
+            New outcome
+          </button>
+        </form>
+        <form action={newThoughtTpl}>
+          <button className="btn-ghost w-full border border-dashed border-slate-300 dark:border-slate-700">
+            <Icon name="PenLine" className="h-4 w-4" />
+            New thought
+          </button>
+        </form>
       </div>
 
       {templates.length === 0 && (

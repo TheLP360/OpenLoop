@@ -84,6 +84,20 @@ export async function listTemplates(): Promise<(Template & { steps: TemplateStep
   }));
 }
 
+export async function getTemplate(
+  id: string
+): Promise<(Template & { steps: TemplateStep[] }) | null> {
+  const supabase = createClient();
+  const { data: template } = await supabase.from("templates").select("*").eq("id", id).maybeSingle();
+  if (!template) return null;
+  const { data: steps } = await supabase
+    .from("template_steps")
+    .select("*")
+    .eq("template_id", id)
+    .order("sort_order");
+  return { ...template, steps: steps ?? [] };
+}
+
 export async function dashboardCounts() {
   const supabase = createClient();
   const kinds: ItemKind[] = ["next_step", "outcome", "thought", "resource"];

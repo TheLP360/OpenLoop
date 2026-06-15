@@ -6,11 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { KINDS } from "@/lib/constants";
 import type {
   EnergyLevel,
+  Item,
   ItemKind,
   ItemStatus,
   PriorityLevel,
 } from "@/lib/types";
 import { parseTags } from "@/lib/utils";
+import { nextDate } from "@/lib/recurrence";
+
+type SupabaseServer = ReturnType<typeof createClient>;
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = (v as string | null)?.toString().trim();
@@ -21,6 +25,84 @@ function revalidateAll() {
   revalidatePath("/");
   revalidatePath("/intake");
   for (const k of Object.values(KINDS)) revalidatePath(`/${k.slug}`);
+}
+
+// ── Recurrence ────────────────────────────────────────────────────────────────
+// When a recurring item is completed, materialize its next occurrence so the
+// series keeps rolling. Dates shift forward by the rule; relationships and the
+// recurrence series id carry over.
+async function spawnNextOccurrence(supabase: SupabaseServer, item: Item) {
+  if (!item.recurrence_rule) return;
+
+  const anchor = item.due_date
+    ? new Date(item.due_date)
+    : item.scheduled_date
+      ? new Date(item.scheduled_date)
+      : new Date();
+  const next = nextDate(item.recurrence_rule, anchor);
+  if (!next) return;
+
+  // Preserve the gap between scheduled and due dates if both were set.
+  let newScheduled: string | null = null;
+  if (item.scheduled_date) {
+    if (item.due_date) {
+      const delta = new Date(item.scheduled_date).getTime() - new Date(item.due_date).getTime();
+      newScheduled = new Date(next.getTime() + delta).toISOString();
+    } else {
+      newScheduled = next.toISOString();
+    }
+  }
+  const newDue = item.due_date ? next.toISOString() : null;
+  const seriesId = item.recurrence_parent_id ?? item.id;
+  const status: ItemStatus = item.kind === "outcome" ? "active" : "next";
+
+  const { data: clone, error } = await supabase
+    .from("items")
+    .insert({
+      owner_id: item.owner_id,
+      kind: item.kind,
+      status,
+      title: item.title,
+      description: item.description,
+      body: item.body,
+      energy: item.energy,
+      priority: item.priority,
+      tags: item.tags,
+      url: item.url,
+      due_date: newDue,
+      scheduled_date: newScheduled,
+      parent_id: item.parent_id,
+      recurrence_rule: item.recurrence_rule,
+      recurrence_parent_id: seriesId,
+      source: item.source,
+      template_id: item.template_id,
+    })
+    .select("id")
+    .single();
+  if (error || !clone) return;
+
+  // For recurring Outcomes, recreate the child Next Steps as a fresh checklist.
+  if (item.kind === "outcome") {
+    const { data: children } = await supabase
+      .from("items")
+      .select("title,description,energy,priority")
+      .eq("parent_id", item.id);
+    if (children?.length) {
+      await supabase.from("items").insert(
+        children.map((c) => ({
+          owner_id: item.owner_id,
+          kind: "next_step" as const,
+          status: "next" as const,
+          title: c.title,
+          description: c.description,
+          energy: c.energy,
+          priority: c.priority,
+          parent_id: clone.id,
+          source: "template" as const,
+        }))
+      );
+    }
+  }
 }
 
 // ── Quick Capture ─────────────────────────────────────────────────────────────
@@ -113,14 +195,23 @@ export async function updateItem(id: string, formData: FormData) {
   const supabase = createClient();
   const fields = readItemFields(formData);
 
+  // Was it already done? Avoid re-spawning a recurrence on repeated saves.
+  const { data: prev } = await supabase.from("items").select("status").eq("id", id).single();
+
   // Stamp completion time when transitioning to done.
   const completed_at = fields.status === "done" ? new Date().toISOString() : null;
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("items")
     .update({ ...fields, completed_at })
-    .eq("id", id);
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
+
+  if (updated && fields.status === "done" && prev?.status !== "done") {
+    await spawnNextOccurrence(supabase, updated as Item);
+  }
 
   revalidateAll();
   revalidatePath(`/item/${id}`);
@@ -128,14 +219,23 @@ export async function updateItem(id: string, formData: FormData) {
 
 export async function setStatus(id: string, status: ItemStatus) {
   const supabase = createClient();
-  const { error } = await supabase
+  const { data: prev } = await supabase.from("items").select("status").eq("id", id).single();
+
+  const { data: updated, error } = await supabase
     .from("items")
     .update({
       status,
       completed_at: status === "done" ? new Date().toISOString() : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
+
+  if (updated && status === "done" && prev?.status !== "done") {
+    await spawnNextOccurrence(supabase, updated as Item);
+  }
+
   revalidateAll();
   revalidatePath(`/item/${id}`);
 }

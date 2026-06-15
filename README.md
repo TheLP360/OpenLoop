@@ -116,6 +116,44 @@ curl -X POST https://<your-app>/api/ai/items \
 These run server-side with the service-role key, scoped to `OPENLOOP_OWNER_ID`.
 (Hook this up to an MCP server or a custom GPT/assistant to chat with your data.)
 
+## MCP server (chat with your data)
+
+`mcp/` is a standalone [MCP](https://modelcontextprotocol.io) server that lets
+Claude Desktop / Claude Code search, browse, and capture into OpenLoop. It wraps
+the AI API above, so it only needs your deployed URL and key — no DB access.
+
+```bash
+cd mcp && npm install
+```
+
+Register it (e.g. Claude Desktop `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "openloop": {
+      "command": "node",
+      "args": ["/absolute/path/to/OpenLoop/mcp/index.mjs"],
+      "env": {
+        "OPENLOOP_BASE_URL": "https://<your-app>",
+        "OPENLOOP_API_KEY": "<same as AI_SEARCH_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+Tools exposed: `openloop_search`, `openloop_list`, `openloop_capture`.
+
+## Recurrence
+
+Next Steps and Outcomes can repeat. Toggle **Repeats** on an item to pick a
+schedule (every N days/weeks/months/years; weekly can target specific
+weekdays). When you complete a recurring item, OpenLoop automatically
+**spawns the next occurrence** with its dates rolled forward — and for a
+recurring Outcome, it recreates the child Next Steps as a fresh checklist. The
+rule is stored as a compact RRULE in `items.recurrence_rule`.
+
 ## Telegram capture (optional)
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) → get the token →
@@ -154,9 +192,11 @@ construction.
 
 ## Roadmap / phases
 
-- **Phase 1 (this build):** the four elements + full forms, Quick Capture FAB,
-  Intake processing with resurface dates, attachments, templates, AI search,
-  Telegram capture. Recurrence fields exist in the schema.
-- **Phase 2:** the recurrence engine (materialize recurring Next Steps/Outcomes
-  from `recurrence_rule`), push notifications, richer search ranking, calendar
-  view, and an MCP server wrapper for the AI API.
+- **Phase 1:** the four elements + full forms, Quick Capture FAB, Intake
+  processing with resurface dates, attachments, templates, AI search, Telegram
+  capture.
+- **Phase 2 (done):** recurrence engine (recurring Next Steps & Outcomes that
+  spawn their next occurrence on completion) + structured schedule picker, and
+  the MCP server.
+- **Phase 3 (next):** push notifications for due / resurfaced items, a calendar
+  view, richer full-text search ranking, and template authoring in-app.

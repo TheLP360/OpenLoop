@@ -1,0 +1,16 @@
+{
+  "name": "openloop-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing your OpenLoop workspace (search, browse, capture) to AI assistants.",
+  "bin": {
+    "openloop-mcp": "index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0"
+  }
+}

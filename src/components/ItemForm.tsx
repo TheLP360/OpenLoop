@@ -17,6 +17,7 @@ import {
 import { deleteItem, updateItem } from "@/app/actions";
 import { toDateTimeLocal } from "@/lib/utils";
 import { Icon } from "./Icon";
+import { RecurrencePicker } from "./RecurrencePicker";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -162,23 +163,7 @@ export function ItemForm({
         </div>
 
         {(isNextStep || kind === "outcome") && (
-          <details className="card px-4 py-3">
-            <summary className="cursor-pointer text-sm font-medium text-slate-600 dark:text-slate-300">
-              Recurrence (advanced)
-            </summary>
-            <div className="mt-3">
-              <label className="label">RRULE</label>
-              <input
-                name="recurrence_rule"
-                className="input"
-                defaultValue={item.recurrence_rule ?? ""}
-                placeholder="e.g. FREQ=WEEKLY;BYDAY=MO"
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                Stored now; the recurrence engine arrives in a later phase.
-              </p>
-            </div>
-          </details>
+          <RecurrencePicker defaultValue={item.recurrence_rule} />
         )}
 
         <div className="flex gap-2 pt-1">
